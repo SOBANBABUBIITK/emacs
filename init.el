@@ -1,41 +1,42 @@
 (require 'package)
 
-;; Adds the Melpa archive to the list of available repositories
-(add-to-list 'package-archives
-             '("melpa" . "http://melpa.org/packages/") t)
+(add-to-list 'package-archives '("gnu" . "https://elpa.gnu.org/packages/") t)
+(add-to-list 'package-archives '("marmalade" . "https://marmalade-repo.org/packages/") t)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(add-to-list 'package-archives '("melpa-stable" . "https://stable.melpa.org/packages/") t)
 
-;; Initializes the package infrastructure
 (package-initialize)
 
-;; If there are no archived package contents, refresh them
 (when (not package-archive-contents)
   (package-refresh-contents))
+;; some error with old package
+(package-install 'use-package)
 
-;; Installs packages
-;;
 ;; myPackages contains a list of package names
 (defvar myPackages
   '(better-defaults                 ;; Set up some better Emacs defaults
     elpy                            ;; Emacs Lisp Python Environment
     flycheck                        ;; On the fly syntax checking
+    flycheck-google-cpplint
     py-autopep8                     ;; Run autopep8 on save
     blacken                         ;; Black formatting on save
     ein                             ;; Emacs IPython Notebook
-    ;; material-theme                  ;; Theme
+    jedi
+	exec-path-from-shell
     auto-complete
     auto-complete-c-headers
     iedit
     modern-cpp-font-lock
     clang-format
     google-c-style
-    format-all
     auctex
     auto-complete-auctex
     ac-math
-    flycheck-google-cpplint
-    flymake-cursor
     yasnippet
-	magit
+    magit
+    vscode-dark-plus-theme          ;; vscode-dark-theme
+    material-theme                  ;; material-theme
+    highlight-indent-guides         ;; Show vs code like line in indentation
     )
   )
 
@@ -51,7 +52,6 @@
 ;; ===================================
 (set-language-environment "UTF-8")
 (setq inhibit-startup-message t)    ;; Hide the startup message
-;; (load-theme 'material t)            ;; Load material theme
 (global-linum-mode t)               ;; Enable line numbers globally
 (menu-bar-mode -1)
 (tool-bar-mode -1)
@@ -61,80 +61,99 @@
 (setq whitespace-display-mappings '((space-mark 32 [?·])))
 (add-hook 'before-save-hook 'delete-trailing-whitespace)     ;; delete trailing white space before saving
 
-;;; Enable flycheck mode for all languages
+;; show matching parenthesis
+(show-paren-mode 1)
+(setq show-paren-delay 0)
+
+;; Enable flycheck mode for all languages
 (add-hook 'after-init-hook #'global-flycheck-mode)
 (setq-default tab-width 4)
+
+;;===================================
+;; Themes
+;;===================================
+(load-theme 'vscode-dark-plus t) ;; Load vscdode-dark themex
+;; (load-theme 'material t)            ;; Load material theme
+
+
 ;; ====================================
 ;; Python Development Setup
 ;; ====================================
 ;; Enable elpy
+(package-initialize)
 (elpy-enable)
+;; Python autocomplete at do was not working without following command
+(add-hook 'python-mode-hook 'jedi:setup)
+(setq jedi:complete-on-dot t)                 ; optional
+(setq elpy-rpc-backend "jedi")
+;; Use shell's $path
+(defun set-exec-path-from-shell-PATH ()
+  "Set up Emacs' `exec-path' and PATH environment variable to match
+that used by the user's shell.
 
-;; Enable Flycheck
-(when (require 'flycheck nil t)
-  (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
-  (add-hook 'elpy-mode-hook 'flycheck-mode))
+This is particularly useful under Mac OS X and macOS, where GUI
+apps are not started from a shell."
+  (interactive)
+  (let ((path-from-shell (replace-regexp-in-string
+			  "[ \t\n]*$" "" (shell-command-to-string
+					  "$SHELL --login -c 'echo $PATH'"
+						    ))))
+    (setenv "PATH" path-from-shell)
+    (setq exec-path (split-string path-from-shell path-separator))))
 
-
-;; Enable autopep8
-(require 'py-autopep8)
-;; (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
-
-;; Use IPython for REPL
-;; (setq python-shell-interpreter "jupyter"
-;;       python-shell-interpreter-args "console --simple-prompt"
-;;       python-shell-prompt-detect-failure-warning nil)
-;; (add-to-list 'python-shell-completion-native-disabled-interpreters
-;;              "jupyter")
-
+(set-exec-path-from-shell-PATH)
+;; (exec-path-from-shell-copy-env "PATH")
 ;;------------------------------
 ;;           c++
 ;;------------------------------
 ;; start auto-complete with emacs
 (require 'auto-complete)
-					; do default config for auto-complete
+
+;; do default config for auto-complete
 (require 'auto-complete-config)
 (ac-config-default)
-					; start yasnippet with emacs
+
+;; start yasnippet with emacs
 (require 'yasnippet)
 (yas-global-mode 1)
-					; let's define a function which initializes auto-complete-c-headers and gets called for c/c++ hooks
+
+;; let's define a function which initializes auto-complete-c-headers and gets called for c/c++ hooks
 (defun my:ac-c-header-init ()
   (require 'auto-complete-c-headers)
   (add-to-list 'ac-sources 'ac-source-c-headers)
   (setq achead:include-directories
 	(append '("/usr/include/c++/9"
-		  "/usr/include/x86_64-linux-gnu/c++/9"
-		  "/usr/include/c++/9/backward"
-		  "/usr/lib/gcc/x86_64-linux-gnu/9/include"
-		  "/usr/local/include"
-		  "/usr/include/x86_64-linux-gnu"
-		  "/usr/include"
-		  "/usr/local/programfiles/trilinos/include")
-		achead:include-directories))
+			  "/usr/include/x86_64-linux-gnu/c++/9"
+			  "/usr/include/c++/9/backward"
+			  "/usr/lib/gcc/x86_64-linux-gnu/9/include"
+			  "/usr/local/include"
+			  "/usr/include/x86_64-linux-gnu"
+			  "/usr/include"
+			  "/usr/local/programfiles/trilinos/include")
+			achead:include-directories))
   )
-					; now let's call this function from c/c++ hooks
+;; now let's call this function from c/c++ hooks
 (add-hook 'c++-mode-hook 'my:ac-c-header-init)
 (add-hook 'c-mode-hook 'my:ac-c-header-init)
-(require 'iedit)
-					; Fix iedit bug in ubuntu
-(define-key global-map (kbd "C-c C-;") 'iedit-mode)
 
-					; turn on Semantic
+;; turn on Semantic
 (semantic-mode 1)
-					; let's define a function which adds semantic as a suggestion backend to auto complete
-					; and hook this function to c-mode-common-hook
+
+;; let's define a function which adds semantic as a suggestion backend to auto complete
+;; and hook this function to c-mode-common-hook
 (defun my:add-semantic-to-autocomplete()
   (add-to-list 'ac-sources 'ac-source-semantic)
   )
 (add-hook 'c-mode-common-hook 'my:add-semantic-to-autocomplete)
-					; turn on ede mode
-(global-ede-mode 1)
-					; you can use system-include-path for setting up the system header file locations.
-					; turn on automatic reparsing of open buffers in semantic
-(global-semantic-idle-scheduler-mode 1)
-(modern-c++-font-lock-global-mode 1)
 
+;; turn on ede mode
+(global-ede-mode 1)
+
+;; you can use system-include-path for setting up the system header file locations.
+;; turn on automatic reparsing of open buffers in semantic
+(global-semantic-idle-scheduler-mode 1)
+
+(modern-c++-font-lock-global-mode 1)
 ;; Set default indetation to 4 space
 (setq-default c-basic-offset 4)
 
@@ -143,7 +162,7 @@
      (require 'flycheck-google-cpplint)
      ;; Add Google C++ Style checker.
      ;; In default, syntax checked by Clang and Cppcheck.
-     (flycheck-add-next-checker 'c/c++-clang
+     (flycheck-add-next-checker 'c/c++-cppcheck
                                 'c/c++-googlelint 'append)))
 ;;------------------------------
 ;;           LATEX
@@ -157,17 +176,32 @@
 (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
 (setq reftex-plug-into-AUCTeX 1)
 (setq LaTeX-item-indent 0)
-;;; init.el ends here
 
+;; -------------------------
+;;  highlight-indent-guides
+;; -------------------------
+(add-hook 'prog-mode-hook 'highlight-indent-guides-mode)
+;; Set the display method
+(setq highlight-indent-guides-method 'character)
+
+;; -------------------------
+;;  Multiline edit
+;; -------------------------
+(require 'iedit)
+;; Fix iedit bug in ubuntu
+(define-key global-map (kbd "C-c C-;") 'iedit-mode)
+
+
+;; ;; User init.el ends here
+;; ;;=====================================================
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(gnutls-algorithm-priority "normal:-vers-tls1.3")
  '(package-selected-packages
    (quote
-	(magit py-autopep8 modern-cpp-font-lock iedit google-c-style format-all flymake-cursor flycheck-google-cpplint elpy ein clang-format blacken better-defaults auto-complete-c-headers auto-complete-auctex auctex ac-math))))
+	(yasnippet-snippets find-file-in-project elpy vscode-dark-plus-theme use-package py-autopep8 modern-cpp-font-lock material-theme magit jedi iedit highlight-indent-guides google-c-style flycheck-google-cpplint ein clang-format blacken better-defaults auto-complete-c-headers auto-complete-auctex auctex ac-math))))
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
