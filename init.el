@@ -8,13 +8,14 @@
 
 (defvar myPackages
   '(better-defaults                 ;; Set up some better Emacs defaults
+	exec-path-from-shell            ;; Execute shell commands
     elpy                            ;; Emacs Lisp Python Environment
     flycheck                        ;; On the fly syntax checking
     flycheck-pycheckers             ;;
     py-autopep8                     ;; Run autopep8 on save
     blacken                         ;; Black formatting on save
     ein                             ;; Emacs IPython Notebook
-    iedit                           ;; multiple edic
+    ;; iedit                           ;; multiple edic
     magit                           ;; for git
     highlight-indent-guides         ;; Highlight like vs code
     vscode-dark-plus-theme          ;; vscode-dark-theme
@@ -24,6 +25,8 @@
     modern-cpp-font-lock            ;;
     google-c-style                  ;; Provides the google C/C++ coding style.
     flycheck-google-cpplint         ;; This is extension for Flycheck according to the Google C++ Style Guide
+    auctex                          ;; Latex package for emacs
+    ;; latex-extra                     ;; Adds several useful functionalities to LaTeX-mode.
     )
   )
 
@@ -40,10 +43,10 @@
 (set-language-environment "UTF-8")
 (setq inhibit-startup-message t)    ;; Hide the startup message
 ;; (load-theme 'material t)            ;; Load material theme
-(load-theme 'vscode-dark-plus t)            ;; Load material theme
+;; (load-theme 'vscode-dark-plus t)            ;; Load material theme
 (global-linum-mode t)               ;; Enable line numbers globally
 
-(setq-default cursor-type 'bar) ;; set cursor type to I
+;; (setq-default cursor-type 'bar) ;; set cursor type to I
 (setq-default indicate-empty-lines t) ;; show white lines
 (setq-default show-trailing-whitespace t) ;; show only trailing white space
 (setq whitespace-display-mappings '((space-mark 32 [?·])))
@@ -51,11 +54,14 @@
 (add-to-list 'default-frame-alist
              '(font . "DejaVu Sans Mono-11")) ;; Change font style and size
 
-(tool-bar-mode -1)     ;; Disable tool bar mode
+(tool-bar-mode -1)     ;; Disable tool bar modex
 (toggle-scroll-bar -1) ;; Scroll bar
 (menu-bar-mode -1)     ;; Menubar
 
-
+(require 'paren)
+(setq show-paren-style 'parenthesis)
+(show-paren-mode +1)
+(setq-default tab-width 4)
 ;;------------------------------
 ;;           c++
 ;;------------------------------
@@ -63,6 +69,7 @@
 (require 'auto-complete)
 (require 'auto-complete-config)
 (ac-config-default)
+;; Auto complete is too low, try using company, and company-irony
 
 ;; let's define a function which initializes auto-complete-c-headers and gets called for c/c++ hooks
 (defun my:ac-c-header-init ()
@@ -76,6 +83,7 @@
 		  "/usr/local/include"
 		  "/usr/include/x86_64-linux-gnu"
 		  "/usr/include"
+		  "/usr/local/include"                   ;; Added deal.II include files here
 		  "/usr/local/programfiles/trilinos/include"
 		  "/usr/local/programfiles/or-tools/include")
 		achead:include-directories))
@@ -98,8 +106,8 @@
   )
 (add-hook 'c-mode-common-hook 'my:add-semantic-to-autocomplete)
 
-(add-hook 'c-mode-common-hook 'google-set-c-style)
-(add-hook 'c++-mode-common-hook 'google-set-c-style)
+;; (add-hook 'c-mode-common-hook 'google-set-c-style)
+;; (add-hook 'c++-mode-common-hook 'google-set-c-style)
 (add-hook 'c-mode-common-hook 'google-make-newline-indent)
 (add-hook 'c++-mode-common-hook 'google-make-newline-indent)
 
@@ -112,9 +120,10 @@
                                 'c/c++-googlelint 'append)))
 
 ;; Set default indetation to 4 space
+(modern-c++-font-lock-global-mode 1)
 (setq-default c-basic-offset 4)
 (setq-default c++-basic-offset 4)
-(modern-c++-font-lock-global-mode 1)
+
 ;;------------------------------
 ;;           LATEX
 ;;------------------------------
@@ -122,12 +131,34 @@
 (setq TeX-parse-self 1)
 (setq-default TeX-master nil)
 (add-hook 'LaTeX-mode-hook 'auto-fill-mode)
-(add-hook 'LaTeX-mode-hook 'flyspell-mode)
+(add-hook 'latex-mode-hook 'flyspell-mode)     ;;enable for tex-mode
+(add-hook 'LaTeX-mode-hook 'flyspell-mode)     ;; or if you use AUCTeX for latex
 (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
 (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
 (setq reftex-plug-into-AUCTeX 1)
-(setq LaTeX-item-indent 0)
+(add-hook 'bibtex-mode-hook 'turn-on-auto-revert-mode)
+(setq LaTeX-item-indent 0)                     ;; Set indentation to 4 x
+;; (add-hook 'LaTeX-mode-hook #'latex-extra-mode)  ;; Add fucntionality to show and off sections
+(setq TeX-brace-indent-level 4)                 ;; Brace indent
+(setq LaTeX-brace-indent-level 4)               ;; Brace indent
+;; Add to line break in latex mode; note this not customized only for latex; other keywords
+;; Auto Fill Mode, fill-column
+;; (setq-default fill-column 1000000)
+(add-hook 'LaTeX-mode-hook 'turn-on-visual-line-mode)
 
+;; To make RefTeX faster for large documents,
+(setq reftex-enable-partial-scans t)
+(setq reftex-save-parse-info t)
+(setq reftex-use-multiple-selection-buffers t)
+(setq reftex-plug-into-AUCTeX t)
+;; Automatically insert non-breaking space before citation
+(setq reftex-format-cite-function
+          '(lambda (key fmt)
+	     (let ((cite (replace-regexp-in-string "%l" key fmt)))
+	       (if (or (= ?~ (string-to-char fmt))
+		       (member (preceding-char) '(?\ ?\t ?\n ?~)))
+	           cite
+	         (concat "~" cite)))))
 ;; -------------------------
 ;;  highlight-indent-guides
 ;; -------------------------
@@ -138,9 +169,9 @@
 ;; -------------------------
 ;;  Multiline edit
 ;; -------------------------
-(require 'iedit)
-;; Fix iedit bug in ubuntu
-(define-key global-map (kbd "C-c C-;") 'iedit-mode)
+;; (require 'iedit)
+;; fix iedit bug in ubuntu
+;; (define-key global-map (kbd "C-c C-;") 'iedit-mode)
 
 ;; ------------------------
 ;; Magit c-x g is not working
@@ -153,34 +184,30 @@
 ;; Enable transient mark mode
 (transient-mark-mode 1)
 (require 'org)
+(add-hook 'org-mode-hook 'flyspell-mode)    ;; enable flyspell in org-mode
+
+;; ---------------------------
+;; Text setup
+;; ---------------------------
+(add-hook 'text-mode-hook 'flyspell-mode)
+
+(add-hook 'after-init-hook #'global-flycheck-mode)
 
 ;; ---------------------------
 ;; Python setup
 ;; ---------------------------
 (elpy-enable)
+;; Enable to use system $PATH varibles
+(exec-path-from-shell-copy-env "PATH")
+
 
 ;; Enable autopep8
 (require 'py-autopep8)
 (add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
-;; Enable fLycheck
+
+;; Enable FLycheck
 (when (load "flycheck" t t)
   (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
   (add-hook 'elpy-mode-hook 'flycheck-mode))
-
-(add-hook 'after-init-hook #'global-flycheck-mode)
-;; User init ends here
-;; ===================================================
-(custom-set-variables
- ;; custom-set-variables was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- '(package-selected-packages
-   (quote
-    (flycheck-google-cpplint google-c-style modern-cpp-font-lock auto-complete-c-headers auto-complete material-theme vscode-dark-plus-theme highlight-indent-guides iedit ein blacken py-autopep8 flycheck-pycheckers flycheck better-defaults yasnippet-snippets magit find-file-in-project elpy))))
-(custom-set-faces
- ;; custom-set-faces was added by Custom.
- ;; If you edit it by hand, you could mess it up, so be careful.
- ;; Your init file should contain only one such instance.
- ;; If there is more than one, they won't work right.
- )
+;; User init.el ends here
+;;======================================================
