@@ -209,5 +209,7 @@
 (when (load "flycheck" t t)
   (setq elpy-modules (delq 'elpy-module-flymake elpy-modules))
   (add-hook 'elpy-mode-hook 'flycheck-mode))
+;; "exited abnormally with code 1" can be improved by
+;; M-x elpy-rpc-reinstall-virtualenv
 ;; User init.el ends here
 ;;======================================================
