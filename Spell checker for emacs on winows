@@ -1,0 +1,58 @@
+I've been struggling to make this work, but I finally got through after reading multiple tutorials. Here's what to do:
+
+Download hunspell (1.7.0) https://github.com/mlt/hunspell/releases/download/appveyor_v1.7.0/hunspell-msvc-Release-x64.zip
+
+Extract the content of the archive in a folder. I did it in one which is in my Path so I can access hunspell from cli.
+
+2. Download LibreOffice English Dictionaries https://extensions.libreoffice.org/extensions/english-dictionaries
+
+Change the extension from oxt to zip, open the archive and extract en_US.aff & en_US.dic in a folder. If you want to use hunspell from cli, you need to create a new system variable called DICPATH and give the folder location as a value to it. For testing if your Path & DICPATH are set correctly open Command Prompt and type: echo htink | hunspell -a -d en_US
+
+you should get some correct spelling suggestions
+
+@(#) International Ispell Version 3.2.06 (but really Hunspell 1.7.0)
+
+& htink 4 0: think, stink, ht ink, ht-ink
+
+
+
+3. open .emacs.d/init.el and add
+
+
+
+(setq ispell-program-name "hunspell")
+
+(setq ispell-hunspell-dict-paths-alist
+
+'(("en_US" "C:/path/to/en_US.aff")))
+
+(setq ispell-local-dictionary "en_US")
+
+(setq ispell-local-dictionary-alist
+
+;; Please note the list `("-d" "en_US")` contains ACTUAL parameters passed to hunspell
+
+;; You could use `("-d" "en_US,en_US-med")` to check with multiple dictionaries
+
+'(("en_US" "[[:alpha:]]" "[^[:alpha:]]" "[']" nil ("-d" "en_US") nil utf-8)))
+
+;; the following line won't make flyspell-mode enabled by default as you might think
+
+(flyspell-mode 1)
+
+;; ispell-word for showing correcting options of the current misspelled word
+
+(global-set-key (kbd "M-\\") 'ispell-word)
+
+
+
+4. open emacs. when you are in a buffer where you want to activate spellchecking, just M-x flyspell-mode. If you made a typo, for example "schol", move the cursor above it, press M-\; in the top there will be a bar with suggested corrections. pick the one you like by pressing the number corresponding to it .
+
+===============================================================================================================
+For error
+  https://emacs.stackexchange.com/questions/47768/error-enabling-flyspell-mode-in-emacs
+========================================================================================
+Add following environvariable to windows
+DICPATH="C:\Users\1370354\AppData\Roaming\hunspell\"
+en_US="C:\Users\1370354\AppData\Roaming\hunspell\en_US.aff"
+LANG="C:\Users\1370354\AppData\Roaming\hunspell\en_US.aff"
